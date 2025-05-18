@@ -20,7 +20,7 @@ class MyPreprocessor(TransformerMixin, BaseEstimator):
         self.price_column_name = price_column_name
         self.vectorizer = TfidfVectorizer()
         return None
-    def _get_array(self,df: pd.DataFrame, column_name: str) -> np.ndarray:
+    def _get_array(self,df: pd.DataFrame, column_name: str) -> list[Image.Image]:
         """
         Convierte una columna de imágenes en un array numpy.
 
@@ -30,7 +30,7 @@ class MyPreprocessor(TransformerMixin, BaseEstimator):
         Returns:
             Array numpy con las imágenes
         """
-        return np.array([Image.fromarray(arr.astype('uint8')) for arr in df[column_name]])
+        return [Image.fromarray(arr.astype('uint8')) for arr in df[column_name]]
     def _get_embeddings(self,df: pd.DataFrame, column_name: str) -> np.ndarray:
         """
         Obtiene los embeddings de las imágenes.
@@ -82,9 +82,9 @@ class MyPreprocessor(TransformerMixin, BaseEstimator):
         df = self._clean_price(df, self.price_column_name)
         df["descripcion_limpio"] = df["descripcion"].apply(self._quitar_tildes)
         df["descripcion_limpio"] = df["descripcion_limpio"].apply(self._quitar_stopwords)
-        df["descripcion_limpio"] = df["descripcion_limpio"].apply(self._tokenizar)
-        self.vectorizer.fit(df["descripcion_limpio"])
-        descripcion_vectorizada = self.vectorizer.transform(df["descripcion_limpio"]).toarray()
+        df["descripcion_limpio"] = df["descripcion_limpio"].apply(lambda x: " ".join(x))
+        #self.vectorizer.fit(df["descripcion_limpio"])
+        descripcion_vectorizada = self.vectorizer.fit_transform(df["descripcion_limpio"]).toarray()
         final_array = np.concatenate([np.stack(df['embeddings'].values), descripcion_vectorizada], axis=1)
         return final_array, df[self.price_column_name + "_limpio"]
     
@@ -96,7 +96,7 @@ class MyPreprocessor(TransformerMixin, BaseEstimator):
         df = self._get_embeddings(df, self.img_column_name)
         df["descripcion_limpio"] = df["descripcion"].apply(self._quitar_tildes)
         df["descripcion_limpio"] = df["descripcion_limpio"].apply(self._quitar_stopwords)
-        df["descripcion_limpio"] = df["descripcion_limpio"].apply(self._tokenizar)
+        df["descripcion_limpio"] = df["descripcion_limpio"].apply(lambda x: " ".join(x))
         descripcion_vectorizada = self.vectorizer.transform(df["descripcion_limpio"]).toarray()
         final_array = np.concatenate([np.stack(df['embeddings'].values), descripcion_vectorizada], axis=1)
         return final_array
